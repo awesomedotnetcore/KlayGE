@@ -356,3 +356,14 @@ FUNCTION(KLAYGE_ADD_XCODE_PRECOMPILED_HEADER TARGET_NAME PRECOMPILED_HEADER PREC
 	SET_TARGET_PROPERTIES(${TARGET_NAME} PROPERTIES XCODE_ATTRIBUTE_GCC_PRECOMPILE_PREFIX_HEADER YES)
 	SET_TARGET_PROPERTIES(${TARGET_NAME} PROPERTIES XCODE_ATTRIBUTE_GCC_PREFIX_HEADER "${PRECOMPILED_HEADER_PATH}/${PRECOMPILED_HEADER}")
 ENDFUNCTION()
+
+macro(KlayGEUseSharedPch target_name pch_header pch_output pch_pdb)
+	if(KLAYGE_COMPILER_MSVC)
+		add_custom_command(TARGET ${target_name}
+			PRE_BUILD
+			COMMAND if EXIST ${pch_pdb} ( ${CMAKE_COMMAND} -E copy_if_different ${pch_pdb} "${CMAKE_CURRENT_BINARY_DIR}/${target_name}.dir/${CMAKE_CFG_INTDIR}" )
+			COMMENT "Copying pdbs of shared pch..."
+		)
+		set_target_properties(${target_name} PROPERTIES COMPILE_FLAGS "/Yu\"${pch_header}\" /Fp\"${pch_output}\"")
+	endif()
+endmacro()

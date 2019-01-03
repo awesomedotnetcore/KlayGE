@@ -3,6 +3,7 @@ SET_TARGET_PROPERTIES(AllInEngine PROPERTIES FOLDER "KlayGE/Engine")
 
 ADD_SUBDIRECTORY(Core/TableGen)
 ADD_SUBDIRECTORY(Core)
+add_subdirectory(Core/SharedPch)
 
 ADD_SUBDIRECTORY(Plugins/Scene/OCTree)
 ADD_SUBDIRECTORY(Plugins/Input/MsgInput)
