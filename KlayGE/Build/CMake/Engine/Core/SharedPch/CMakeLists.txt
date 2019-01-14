@@ -49,4 +49,57 @@ if(KLAYGE_COMPILER_MSVC)
 	set(shared_pch_header ${pch_header} CACHE INTERNAL "" FORCE)
 	set(shared_pch_output ${pch_output} CACHE INTERNAL "" FORCE)
 	set(shared_pch_pdb ${pdb_output} CACHE INTERNAL "" FORCE)
+elseif(KLAYGE_PLATFORM_DARWIN OR KLAYGE_PLATFORM_IOS)
+	set(shared_pch_output "${header_files}" CACHE INTERNAL "" FORCE)
+else()
+	set(CXX_COMPILE_FLAGS ${CMAKE_CXX_FLAGS})
+	if(CMAKE_BUILD_TYPE)
+		string(TOUPPER ${CMAKE_BUILD_TYPE} UPPER_CMAKE_BUILD_TYPE)
+		list(APPEND CXX_COMPILE_FLAGS ${CMAKE_CXX_FLAGS_${UPPER_CMAKE_BUILD_TYPE}})
+	endif()
+
+	get_filename_component(pch_header_name ${header_files} NAME)
+	get_filename_component(pch_header_pach ${header_files} PATH)
+
+	set(pch_output "${output_dir}/${lib_name}.gch")
+
+	get_directory_property(directory_flags INCLUDE_DIRECTORIES)
+
+	set(current_binary_dir_included_before_path FALSE)
+	foreach(item ${directory_flags})
+		if(${item} STREQUAL ${pch_header_pach} AND NOT current_binary_dir_included_before_path)
+			message(FATAL_ERROR
+				"This is the KLAYGE_ADD_GCC_PRECOMPILED_HEADER function. "
+				"CMAKE_CURREN_BINARY_DIR has to mentioned at INCLUDE_DIRECTORIES's argument list before ${pch_header_pach}, where ${pch_header_name} is located"
+			)
+		endif()
+
+		if(${item} STREQUAL ${CMAKE_CURRENT_BINARY_DIR})
+			set(current_binary_dir_included_before_path TRUE)
+		endif()
+
+		list(APPEND CXX_COMPILE_FLAGS "-I\"${item}\"")
+	endforeach()
+
+	get_target_property(PIC_OPTION ${lib_name} POSITION_INDEPENDENT_CODE)
+	if(PIC_OPTION AND CMAKE_CXX_COMPILE_OPTIONS_PIC)
+		list(APPEND CXX_COMPILE_FLAGS "${CMAKE_CXX_COMPILE_OPTIONS_PIC}")
+	endif()
+
+	get_directory_property(directory_flags COMPILE_DEFINITIONS)
+	foreach(item ${directory_flags})
+		list(APPEND CXX_COMPILE_FLAGS "-D${item}")
+	endforeach()
+
+	separate_arguments(CXX_COMPILE_FLAGS)
+	
+	add_custom_command(OUTPUT ${pch_output}
+		COMMAND ${CMAKE_CXX_COMPILER} ${CXX_COMPILE_FLAGS} -Wno-error -x c++-header -o ${pch_output} ${header_files}
+	)
+	add_custom_target(${lib_name}_gch
+		DEPENDS ${pch_output}
+	)
+	add_dependencies(${lib_name} ${lib_name}_gch)
+
+	set(shared_pch_output ${pch_output} CACHE INTERNAL "" FORCE)
 endif()
